@@ -23,7 +23,7 @@ def main():
             response.raise_for_status()
         except requests.exceptions.ConnectionError:
             print(f"Error: could not connect to {API_URL}.")
-            print("Please start the API first (e.g. uvicorn app:app --port 8000).")
+            print("Please start the API first with: make run")
             sys.exit(1)
 
         predicted = response.json()["predicted_sentiment"]

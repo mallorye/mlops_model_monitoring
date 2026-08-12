@@ -3,7 +3,7 @@
 A two-container MLOps stack for serving and monitoring a sentiment analysis model:
 
 - **API service** (`api/`) — a FastAPI app that serves a scikit-learn sentiment model at `POST /predict` and appends every prediction (with its ground-truth label) to a JSONL log file.
-- **Monitoring service** (`monitoring/`) — a Streamlit dashboard that reads those prediction logs and displays live accuracy, sentiment distributions, rolling accuracy, and recent predictions.
+- **Monitoring service** (`monitoring/`) — a Streamlit dashboard that reads those prediction logs and compares them against the training data to surface accuracy, precision, data drift, target drift, and alerts.
 
 ## Architecture
 
@@ -104,6 +104,19 @@ Accuracy: 91.38%
 
 Because every request goes through the API, running the evaluation also populates the monitoring dashboard — open http://localhost:8501 afterwards to see the results.
 
+## Monitoring dashboard
+
+The Streamlit dashboard (http://localhost:8501) compares live inference traffic against the training data (`IMDB Dataset.csv`, mounted into the container and located via the `DATA_PATH` env var, default `/app/IMDB Dataset.csv`). It shows:
+
+- **Accuracy alerting** — if live accuracy drops below **80%**, a red alert banner (`st.error`) appears at the very top of the dashboard, flagging possible model degradation or drift.
+- **Model quality metrics** — total prediction count, overall accuracy, **precision for the positive class**, precision for the negative class, and the timestamp of the most recent prediction.
+- **Data drift** — a histogram comparing the review-length (word count) distribution of the training data against incoming request texts. A mismatch (e.g. short one-line requests vs. long training reviews) signals that live traffic no longer looks like the data the model was trained on.
+- **Target drift** — a grouped bar chart comparing the model's predicted sentiment distribution against the sentiment distribution of the training data. A skew toward one class relative to training suggests the input distribution (or the model's behavior) has shifted.
+- **Rolling accuracy** — accuracy over a rolling window of the last 50 predictions, to spot degradation over time rather than just in aggregate.
+- **Recent predictions** — a table of the 25 most recent requests with their predicted and true labels.
+
+Use the **Refresh** button to re-read the logs; predictions appear as soon as the API handles them.
+
 ## Project layout
 
 ```
@@ -117,6 +130,7 @@ Because every request goes through the API, running the evaluation also populate
 │   ├── Dockerfile
 │   ├── app.py                # Streamlit dashboard
 │   └── requirements.txt
+├── IMDB Dataset.csv          # training data, used by the dashboard for drift comparison
 ├── evaluate.py               # accuracy evaluation against the running API
 ├── test.json                 # labeled evaluation set
 ├── Makefile                  # build / run / clean

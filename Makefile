@@ -22,6 +22,7 @@ run:
 	docker run -d --name $(MONITORING_CONTAINER) \
 		--network $(NETWORK) \
 		-v $(VOLUME):/logs \
+		-v "$(CURDIR)/IMDB Dataset.csv":"/app/IMDB Dataset.csv:ro" \
 		-p 8501:8501 \
 		$(MONITORING_IMAGE)
 	@echo "API:        http://localhost:8000"
